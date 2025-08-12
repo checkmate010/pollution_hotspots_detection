@@ -12,10 +12,26 @@ from sklearn.cluster import DBSCAN
 from datetime import datetime
 import calendar
 import geopandas as gpd
+import pyproj
 
 # Create output directory
 output_dir = 'new_analysis_results_who'
 os.makedirs(output_dir, exist_ok=True)
+
+# Load Varanasi boundary
+print("\nLoading Varanasi boundary...")
+try:
+    varanasi_boundary = gpd.read_file('hotspot 2/Varanasi - Saroj Kanta Behera.gpkg')
+    print(f"Varanasi boundary loaded successfully with CRS: {varanasi_boundary.crs}")
+    
+    # Transform from EPSG:7755 to EPSG:4326 (WGS84) for compatibility with plotly maps
+    varanasi_boundary = varanasi_boundary.to_crs(epsg=4326)
+    print("Boundary transformed to WGS84 (EPSG:4326)")
+    
+    has_boundary = True
+except Exception as e:
+    print(f"Error loading Varanasi boundary: {e}")
+    has_boundary = False
 
 print("Reading data...")
 # Read the full dataset with proper date parsing
@@ -118,6 +134,52 @@ df['aqi_category'] = df.apply(calculate_aqi, axis=1)
 # Print AQI distribution
 print("\nAQI Category Distribution:")
 print(df['aqi_category'].value_counts(normalize=True) * 100)
+
+# Function to add Varanasi boundary to any mapbox figure
+def add_varanasi_boundary(fig):
+    """Add Varanasi boundary to a plotly mapbox figure"""
+    if not has_boundary:
+        return fig
+        
+    try:
+        # Extract boundary coordinates
+        for idx, row in varanasi_boundary.iterrows():
+            geom = row.geometry
+            
+            if geom.geom_type == 'MultiPolygon':
+                # Process each polygon in the multipolygon
+                for poly in geom.geoms:
+                    x, y = poly.exterior.xy
+                    fig.add_trace(
+                        go.Scattermapbox(
+                            lat=list(y),
+                            lon=list(x),
+                            mode='lines',
+                            line=dict(width=3, color='black'),
+                            name='Varanasi Boundary',
+                            hoverinfo='skip',
+                            showlegend=False  # Hide from legend
+                        )
+                    )
+            else:  # Single polygon
+                x, y = geom.exterior.xy
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lat=list(y),
+                        lon=list(x),
+                        mode='lines',
+                        line=dict(width=3, color='black'),
+                        name='Varanasi Boundary',
+                        hoverinfo='skip',
+                        showlegend=False  # Hide from legend
+                    )
+                )
+        
+        print("Varanasi boundary added to map")
+    except Exception as e:
+        print(f"Error adding Varanasi boundary to map: {e}")
+    
+    return fig
 
 # Function to identify hotspots with 30th percentile threshold
 def identify_hotspots(dataframe, metric='pollution_score', 
@@ -243,6 +305,9 @@ if not hotspots_df.empty:
         height=800
     )
     
+    # Add Varanasi boundary
+    fig = add_varanasi_boundary(fig)
+    
     fig.write_html(os.path.join(output_dir, 'who_pollution_hotspots_map.html'))
     
     # Create density heatmap
@@ -267,6 +332,9 @@ if not hotspots_df.empty:
         margin={"r":0,"t":50,"l":0,"b":0},
         height=800
     )
+    
+    # Add Varanasi boundary
+    fig = add_varanasi_boundary(fig)
     
     fig.write_html(os.path.join(output_dir, 'who_pollution_density_map.html'))
 
@@ -320,6 +388,9 @@ if not hotspots_df.empty:
             height=800
         )
         
+        # Add Varanasi boundary
+        fig = add_varanasi_boundary(fig)
+        
         fig.write_html(os.path.join(output_dir, 'who_peak_hours_hotspots_map.html'))
     else:
         print("No hotspots found during peak hours")
@@ -372,6 +443,9 @@ if not hotspots_df.empty:
             margin={"r":0,"t":50,"l":0,"b":0},
             height=800
         )
+        
+        # Add Varanasi boundary
+        fig = add_varanasi_boundary(fig)
         
         fig.write_html(os.path.join(output_dir, 'who_off_peak_hours_hotspots_map.html'))
     else:

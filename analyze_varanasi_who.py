@@ -181,13 +181,13 @@ def add_varanasi_boundary(fig):
     
     return fig
 
-# Function to identify hotspots with 30th percentile threshold
+# Function to identify hotspots with 88th percentile threshold
 def identify_hotspots(dataframe, metric='pollution_score', 
-                     threshold_percentile=50, min_days_total=7, min_consistency_pct=0.5,
+                     threshold_percentile=88, min_days_total=7, min_consistency_pct=0.5,
                      time_filter=None):
     """
     Identify hotspots based on consistent high pollution across multiple days.
-    Now using 50th percentile (median) as threshold for high pollution.
+    Now using 88th percentile (median) as threshold for high pollution.
     """
     if time_filter:
         dataframe = dataframe[dataframe['time_category'] == time_filter].copy()
@@ -248,9 +248,9 @@ def identify_hotspots(dataframe, metric='pollution_score',
         return pd.DataFrame()
 
 # Identify hotspots
-print("\nIdentifying hotspots using 50th percentile threshold...")
+print("\nIdentifying hotspots using 88th percentile threshold...")
 hotspots_df = identify_hotspots(df, metric='pollution_score', 
-                               threshold_percentile=50, 
+                               threshold_percentile=88, 
                                min_days_total=7, 
                                min_consistency_pct=0.5)
 
@@ -341,7 +341,7 @@ if not hotspots_df.empty:
     # Analyze peak vs off-peak patterns
     print("\nAnalyzing peak hours hotspots...")
     peak_hotspots_df = identify_hotspots(df, metric='pollution_score', 
-                                       threshold_percentile=50,
+                                       threshold_percentile=88,
                                        time_filter='peak')
     
     if not peak_hotspots_df.empty:
@@ -397,7 +397,7 @@ if not hotspots_df.empty:
     
     print("\nAnalyzing off-peak hours hotspots...")
     off_peak_hotspots_df = identify_hotspots(df, metric='pollution_score', 
-                                           threshold_percentile=50,
+                                           threshold_percentile=88,
                                            time_filter='off_peak')
     
     if not off_peak_hotspots_df.empty:
